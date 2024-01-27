@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use api::{discord::{create_discord_event, delete_discord_event, get_discord_events, CreateDiscordEvent, DiscordEvent, EntityMetadata}, twitch::get_twitch_events};
+use api::{discord::{create_discord_event, delete_discord_event, edit_discord_event, get_discord_events, CreateDiscordEvent, DiscordEvent, EntityMetadata, UpdateDiscordEvent}, twitch::get_twitch_events};
 use tokio::time;
 use utils::convert_to_offset_datetime;
 
@@ -53,6 +53,32 @@ async fn sync() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     for event in to_delete {
         delete_discord_event(event.id.clone()).await?;
+    }
+
+    // Edit events
+    let to_edit: Vec<&DiscordEvent> = discord_events
+        .iter()
+        .filter(|d_e| twitch_events
+            .iter()
+            .any(|e| e.name == d_e.name && e.description == d_e.description)
+        )
+        .collect();
+
+    for event in to_edit {
+        let filtered_events = twitch_events
+            .iter()
+            .filter(|e| e.name == event.name && e.description == event.description)
+            .collect::<Vec<&CreateDiscordEvent>>();
+
+        let twitch_event =filtered_events.get(0).unwrap();
+
+        edit_discord_event(
+            event.id.clone(),
+            UpdateDiscordEvent {
+                scheduled_start_time: twitch_event.scheduled_start_time,
+                scheduled_end_time: twitch_event.scheduled_end_time
+            }
+        ).await?;
     }
 
     Ok(())
