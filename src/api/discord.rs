@@ -6,7 +6,7 @@ use crate::config;
 
 #[derive(Deserialize)]
 pub struct DiscordEvent {
-    pub id: u64,
+    pub id: String,
     pub name: String,
     pub description: String,
     pub scheduled_start_time: Timestamp,
@@ -57,7 +57,7 @@ pub async fn create_discord_event(event: CreateDiscordEvent) -> Result<(), Box<d
     Ok(())
 }
 
-pub async fn delete_discord_event(event_id: u64) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub async fn delete_discord_event(event_id: String) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     reqwest::Client::new()
         .delete(
             format!(
