@@ -1,4 +1,7 @@
+use std::time::Duration;
+
 use api::{discord::{create_discord_event, delete_discord_event, get_discord_events, CreateDiscordEvent, DiscordEvent, EntityMetadata}, twitch::get_twitch_events};
+use tokio::time;
 use utils::convert_to_offset_datetime;
 
 pub mod config;
@@ -74,8 +77,11 @@ async fn sync() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 #[tokio::main]
 async fn main() {
-    match sync().await {
-        Ok(_) => (),
-        Err(e) => eprintln!("{}", e),
+    let mut interval = time::interval(Duration::from_secs(5 * 60));
+
+    loop {
+        sync().await.unwrap();
+
+        interval.tick().await;
     }
 }
