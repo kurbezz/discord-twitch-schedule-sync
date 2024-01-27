@@ -27,7 +27,7 @@ async fn sync() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             }
         })
         .collect();
-    let discord_events = get_discord_events().await.unwrap();
+    let discord_events = get_discord_events().await?;
 
     // Create events
     let to_create: Vec<&CreateDiscordEvent> = twitch_events
