@@ -50,26 +50,26 @@ async fn sync() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         create_discord_event(event.clone()).await?;
     }
 
-    // Delete events
-    let to_delete: Vec<&DiscordEvent> = discord_events
-        .iter()
-        .filter(|d_e| {
-            let exist = twitch_events
-                .iter()
-                .any(|e| {
-                    return e.name == d_e.name &&
-                        e.description == d_e.description &&
-                        e.scheduled_start_time == d_e.scheduled_start_time &&
-                        e.scheduled_end_time == d_e.scheduled_end_time;
-                });
+    // // Delete events
+    // let to_delete: Vec<&DiscordEvent> = discord_events
+    //     .iter()
+    //     .filter(|d_e| {
+    //         let exist = twitch_events
+    //             .iter()
+    //             .any(|e| {
+    //                 return e.name == d_e.name &&
+    //                     e.description == d_e.description &&
+    //                     e.scheduled_start_time == d_e.scheduled_start_time &&
+    //                     e.scheduled_end_time == d_e.scheduled_end_time;
+    //             });
 
-            return !exist;
-        })
-        .collect();
+    //         return !exist;
+    //     })
+    //     .collect();
 
-    for event in to_delete {
-        delete_discord_event(event.id).await?;
-    }
+    // for event in to_delete {
+    //     delete_discord_event(event.id).await?;
+    // }
 
     Ok(())
 }
