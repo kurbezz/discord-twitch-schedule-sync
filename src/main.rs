@@ -80,7 +80,10 @@ async fn main() {
     let mut interval = time::interval(Duration::from_secs(5 * 60));
 
     loop {
-        sync().await.unwrap();
+        match sync().await {
+            Ok(_) => (),
+            Err(e) => eprintln!("{}", e),
+        }
 
         interval.tick().await;
     }
