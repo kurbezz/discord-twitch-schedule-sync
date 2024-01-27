@@ -81,7 +81,7 @@ async fn main() {
 
     loop {
         match sync().await {
-            Ok(_) => (),
+            Ok(_) => print!("Updated!"),
             Err(e) => eprintln!("{}", e),
         }
 
