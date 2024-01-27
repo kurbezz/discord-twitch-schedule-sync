@@ -15,7 +15,7 @@ async fn sync() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .iter()
         .map(|e| {
             CreateDiscordEvent {
-                name: e.name.clone(),
+                name: format!("{} | {}", e.name, e.categories),
                 description: e.description.clone(),
                 privacy_level: 2,
                 entity_type: 3,
@@ -32,18 +32,10 @@ async fn sync() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Create events
     let to_create: Vec<&CreateDiscordEvent> = twitch_events
         .iter()
-        .filter(|e| {
-            let exist = discord_events
+        .filter(|e| !discord_events
                 .iter()
-                .any(|d_e| {
-                    return e.name == d_e.name &&
-                        e.description == d_e.description &&
-                        e.scheduled_start_time == d_e.scheduled_start_time &&
-                        e.scheduled_end_time == d_e.scheduled_end_time;
-                });
-
-            return !exist;
-        })
+                .any(|d_e| e.name == d_e.name && e.description == d_e.description)
+        )
         .collect();
 
     for event in to_create {
@@ -53,18 +45,10 @@ async fn sync() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Delete events
     let to_delete: Vec<&DiscordEvent> = discord_events
         .iter()
-        .filter(|d_e| {
-            let exist = twitch_events
+        .filter(|d_e| !twitch_events
                 .iter()
-                .any(|e| {
-                    return e.name == d_e.name &&
-                        e.description == d_e.description &&
-                        e.scheduled_start_time == d_e.scheduled_start_time &&
-                        e.scheduled_end_time == d_e.scheduled_end_time;
-                });
-
-            return !exist;
-        })
+                .any(|e| e.name == d_e.name && e.description == d_e.description)
+        )
         .collect();
 
     for event in to_delete {
