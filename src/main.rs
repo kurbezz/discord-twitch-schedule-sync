@@ -70,15 +70,17 @@ async fn sync() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             .filter(|e| e.name == event.name && e.description == event.description && e.scheduled_start_time.date() == event.scheduled_start_time.date())
             .collect::<Vec<&CreateDiscordEvent>>();
 
-        let twitch_event = filtered_events.get(0).unwrap();
-
-        edit_discord_event(
-            event.id.clone(),
-            UpdateDiscordEvent {
-                scheduled_start_time: twitch_event.scheduled_start_time,
-                scheduled_end_time: twitch_event.scheduled_end_time
+        if let Some(twitch_event) = filtered_events.get(0) {
+            if twitch_event.scheduled_start_time != event.scheduled_start_time || twitch_event.scheduled_end_time != event.scheduled_end_time {
+                edit_discord_event(
+                    event.id.clone(),
+                    UpdateDiscordEvent {
+                        scheduled_start_time: twitch_event.scheduled_start_time,
+                        scheduled_end_time: twitch_event.scheduled_end_time
+                    }
+                ).await?;
             }
-        ).await?;
+        }
     }
 
     Ok(())
