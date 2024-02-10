@@ -34,7 +34,7 @@ async fn sync() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .iter()
         .filter(|e| !discord_events
                 .iter()
-                .any(|d_e| e.name == d_e.name && e.description == d_e.description)
+                .any(|d_e| e.name == d_e.name && e.description == d_e.description && e.scheduled_start_time.date() == d_e.scheduled_start_time.date())
         )
         .collect();
 
@@ -47,7 +47,7 @@ async fn sync() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .iter()
         .filter(|d_e| !twitch_events
                 .iter()
-                .any(|e| e.name == d_e.name && e.description == d_e.description)
+                .any(|e| e.name == d_e.name && e.description == d_e.description && e.scheduled_start_time.date() == d_e.scheduled_start_time.date())
         )
         .collect();
 
@@ -60,17 +60,17 @@ async fn sync() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .iter()
         .filter(|d_e| twitch_events
             .iter()
-            .any(|e| e.name == d_e.name && e.description == d_e.description)
+            .any(|e| e.name == d_e.name && e.description == d_e.description && e.scheduled_start_time.date() == d_e.scheduled_start_time.date())
         )
         .collect();
 
     for event in to_edit {
         let filtered_events = twitch_events
             .iter()
-            .filter(|e| e.name == event.name && e.description == event.description)
+            .filter(|e| e.name == event.name && e.description == event.description && e.scheduled_start_time.date() == event.scheduled_start_time.date())
             .collect::<Vec<&CreateDiscordEvent>>();
 
-        let twitch_event =filtered_events.get(0).unwrap();
+        let twitch_event = filtered_events.get(0).unwrap();
 
         edit_discord_event(
             event.id.clone(),
