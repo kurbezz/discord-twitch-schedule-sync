@@ -93,7 +93,7 @@ pub async fn get_twitch_events() -> Result<Vec<TwitchEvent>, Box<dyn std::error:
                     RepeatRule::Weekly(day) => {
                         let mut next_date = event.start_at.date_naive();
 
-                        while next_date.weekday() != day || next_date <= Utc::now().date_naive() {
+                        while next_date.weekday() != day || next_date < Utc::now().date_naive() {
                             next_date = next_date.succ_opt().unwrap();
                         }
 
