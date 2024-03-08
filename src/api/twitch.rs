@@ -78,36 +78,16 @@ pub async fn get_twitch_events() -> Result<Vec<TwitchEvent>, Box<dyn std::error:
                 None
             };
 
-            let event = TwitchEvent {
+            TwitchEvent {
                 start_at: parse_property_datetime(&component.properties[2]),
                 end_at: parse_property_datetime(&component.properties[3]),
                 name: component.properties[4].val.to_string(),
                 description: component.properties[5].val.to_string(),
                 categories: component.properties[6].val.to_string(),
                 repeat_rule: repeat_rule.clone()
-            };
-
-            if repeat_rule.is_some() && event.start_at < Utc::now() {
-                let mut next_event = event.clone();
-                next_event.start_at = match repeat_rule.unwrap() {
-                    RepeatRule::Weekly(day) => {
-                        let mut next_date = event.start_at.date_naive();
-
-                        while next_date.weekday() != day || next_date < Utc::now().date_naive() {
-                            next_date = next_date.succ_opt().unwrap();
-                        }
-
-                        Utc.from_utc_datetime(&next_date.and_hms_opt(event.start_at.hour(), event.start_at.minute(), event.start_at.second()).unwrap())
-                    }
-                };
-
-                next_event.end_at = next_event.start_at + (event.end_at - event.start_at);
-                next_event
-            } else {
-                event
             }
         })
-        .filter(|event| event.start_at > Utc::now())
+        .filter(|event| event.start_at > Utc::now() || event.repeat_rule.is_some())
         .collect();
 
     Ok(events)

@@ -1,8 +1,45 @@
-use iso8601_timestamp::Timestamp;
+use iso8601_timestamp::{Duration, Timestamp};
 use serde::{Deserialize, Serialize};
 
-use crate::config;
+use crate::{config, utils::convert_to_offset_datetime};
 
+use super::twitch::TwitchEvent;
+
+
+#[derive(Deserialize, Serialize, Clone, PartialEq)]
+pub struct RecurrenceRule {
+    pub start: Timestamp,
+    pub by_weekday: Option<Vec<u8>>,
+    pub interval: Option<u8>,
+    pub frequency: Option<u8>,
+}
+
+pub trait NextDate {
+    fn next_date(&self, start: Timestamp) -> Option<Timestamp>;
+}
+
+impl NextDate for RecurrenceRule {
+    fn next_date(&self, start: Timestamp) -> Option<Timestamp> {
+        let mut next_date = start;
+
+        loop {
+            next_date = next_date.checked_add(Duration::seconds(24 * 60 * 60)).unwrap();
+
+            if next_date < Timestamp::now_utc() {
+                continue;
+            }
+
+            match self.by_weekday {
+                Some(ref days) => {
+                    if days.contains(&((next_date.date().weekday().number_from_monday() - 1) as u8)) {
+                        return Some(next_date);
+                    }
+                },
+                None => (),
+            }
+        }
+    }
+}
 
 #[derive(Deserialize)]
 pub struct DiscordEvent {
@@ -11,6 +48,7 @@ pub struct DiscordEvent {
     pub description: String,
     pub scheduled_start_time: Timestamp,
     pub scheduled_end_time: Timestamp,
+    pub recurrence_rule: Option<RecurrenceRule>,
 }
 
 #[derive(Serialize, Clone)]
@@ -27,7 +65,41 @@ pub struct CreateDiscordEvent {
     pub entity_metadata: EntityMetadata,
     pub scheduled_start_time: Timestamp,
     pub scheduled_end_time: Timestamp,
+    pub recurrence_rule: Option<RecurrenceRule>,
 }
+
+
+impl Into<CreateDiscordEvent> for TwitchEvent {
+    fn into(self) -> CreateDiscordEvent {
+        CreateDiscordEvent {
+            name: format!("{} | {}", self.name, self.categories),
+            description: self.description.clone(),
+            privacy_level: 2,
+            entity_type: 3,
+            entity_metadata: EntityMetadata {
+                location: "https://twitch.tv/hafmc".to_string()
+            },
+            scheduled_start_time: convert_to_offset_datetime(self.start_at),
+            scheduled_end_time: convert_to_offset_datetime(self.end_at),
+            recurrence_rule: match self.repeat_rule {
+                Some(rule) => {
+                    match rule {
+                        super::twitch::RepeatRule::Weekly(day) => {
+                            Some(RecurrenceRule {
+                                start: convert_to_offset_datetime(self.start_at),
+                                frequency: Some(2),
+                                interval: Some(1),
+                                by_weekday: Some(vec![(day.number_from_monday() - 1) as u8]),
+                            })
+                        },
+                    }
+                },
+                None => None,
+            },
+        }
+    }
+}
+
 
 #[derive(Serialize, Clone)]
 pub struct UpdateDiscordEvent {
@@ -82,4 +154,50 @@ pub async fn edit_discord_event(event_id: String, event: UpdateDiscordEvent) -> 
         .error_for_status()?;
 
     Ok(())
+}
+
+
+// Comparators
+
+pub fn is_repeated(start: Timestamp, target: Timestamp, rule: &RecurrenceRule) -> bool {
+    match rule.by_weekday {
+        Some(ref days) => {
+            let target_day = target.date().weekday().number_from_monday();
+
+            return days.contains(&target_day) && start.time() == target.time();
+        },
+        None => (),
+    }
+
+    false
+}
+
+pub fn compare_events(e: &CreateDiscordEvent, d_e: &DiscordEvent) -> bool {
+    if e.name != d_e.name { return false };
+    if e.description != d_e.description { return false };
+    if e.recurrence_rule != d_e.recurrence_rule { return false };
+
+    if e.scheduled_start_time != d_e.scheduled_start_time {
+        match &e.recurrence_rule {
+            Some(rule) => {
+                if !is_repeated(e.scheduled_start_time, d_e.scheduled_start_time, rule) {
+                    return false;
+                }
+            },
+            None => return false,
+        }
+    };
+
+    if e.scheduled_end_time != d_e.scheduled_end_time {
+        match &e.recurrence_rule {
+            Some(rule) => {
+                if !is_repeated(e.scheduled_end_time, d_e.scheduled_end_time, rule) {
+                    return false;
+                }
+            },
+            None => return false,
+        }
+    }
+
+    true
 }

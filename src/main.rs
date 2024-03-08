@@ -1,8 +1,8 @@
 use std::time::Duration;
 
-use api::{discord::{create_discord_event, delete_discord_event, edit_discord_event, get_discord_events, CreateDiscordEvent, DiscordEvent, EntityMetadata, UpdateDiscordEvent}, twitch::get_twitch_events};
+use api::{discord::{compare_events, create_discord_event, delete_discord_event, get_discord_events, CreateDiscordEvent, DiscordEvent, NextDate, RecurrenceRule}, twitch::get_twitch_events};
+use iso8601_timestamp::Timestamp;
 use tokio::time;
-use utils::convert_to_offset_datetime;
 
 pub mod config;
 pub mod api;
@@ -13,19 +13,7 @@ async fn sync() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let twitch_events: Vec<CreateDiscordEvent> = get_twitch_events()
         .await?
         .iter()
-        .map(|e| {
-            CreateDiscordEvent {
-                name: format!("{} | {}", e.name, e.categories),
-                description: e.description.clone(),
-                privacy_level: 2,
-                entity_type: 3,
-                entity_metadata: EntityMetadata {
-                    location: "https://twitch.tv/hafmc".to_string()
-                },
-                scheduled_start_time: convert_to_offset_datetime(e.start_at),
-                scheduled_end_time: convert_to_offset_datetime(e.end_at)
-            }
-        })
+        .map(|e| e.clone().into())
         .collect();
     let discord_events = get_discord_events().await?;
 
@@ -34,11 +22,34 @@ async fn sync() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .iter()
         .filter(|e| !discord_events
                 .iter()
-                .any(|d_e| e.name == d_e.name && e.description == d_e.description && e.scheduled_start_time.date() == d_e.scheduled_start_time.date())
+                .any(|d_e| compare_events(e, d_e))
         )
         .collect();
 
     for event in to_create {
+        if event.scheduled_start_time <= Timestamp::now_utc() {
+            match event.recurrence_rule.clone() {
+                Some(rule) => {
+                    let mut next_event = event.clone();
+
+                    next_event.scheduled_start_time = rule.next_date(event.scheduled_start_time).unwrap();
+                    next_event.scheduled_end_time = next_event.scheduled_start_time.checked_add(
+                        event.scheduled_end_time.duration_since(Timestamp::UNIX_EPOCH) - event.scheduled_start_time.duration_since(Timestamp::UNIX_EPOCH)
+                    ).unwrap();
+
+                    next_event.recurrence_rule = Some(RecurrenceRule {
+                        start: next_event.scheduled_start_time,
+                        ..next_event.recurrence_rule.unwrap()
+                    });
+
+                    create_discord_event(next_event.clone()).await?;
+                },
+                None => {},
+            }
+
+            continue;
+        }
+
         create_discord_event(event.clone()).await?;
     }
 
@@ -47,7 +58,7 @@ async fn sync() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .iter()
         .filter(|d_e| !twitch_events
                 .iter()
-                .any(|e| e.name == d_e.name && e.description == d_e.description && e.scheduled_start_time.date() == d_e.scheduled_start_time.date())
+                .any(|e| compare_events(e, d_e))
         )
         .collect();
 
@@ -56,32 +67,32 @@ async fn sync() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     }
 
     // Edit events
-    let to_edit: Vec<&DiscordEvent> = discord_events
-        .iter()
-        .filter(|d_e| twitch_events
-            .iter()
-            .any(|e| e.name == d_e.name && e.description == d_e.description && e.scheduled_start_time.date() == d_e.scheduled_start_time.date())
-        )
-        .collect();
+    // let to_edit: Vec<&DiscordEvent> = discord_events
+    //     .iter()
+    //     .filter(|d_e| twitch_events
+    //         .iter()
+    //         .any(|e| compare_events(e, d_e))
+    //     )
+    //     .collect();
 
-    for event in to_edit {
-        let filtered_events = twitch_events
-            .iter()
-            .filter(|e| e.name == event.name && e.description == event.description && e.scheduled_start_time.date() == event.scheduled_start_time.date())
-            .collect::<Vec<&CreateDiscordEvent>>();
+    // for event in to_edit {
+    //     let filtered_events = twitch_events
+    //         .iter()
+    //         .filter(|e| compare_events(e, event))
+    //         .collect::<Vec<&CreateDiscordEvent>>();
 
-        if let Some(twitch_event) = filtered_events.get(0) {
-            if twitch_event.scheduled_start_time != event.scheduled_start_time || twitch_event.scheduled_end_time != event.scheduled_end_time {
-                edit_discord_event(
-                    event.id.clone(),
-                    UpdateDiscordEvent {
-                        scheduled_start_time: twitch_event.scheduled_start_time,
-                        scheduled_end_time: twitch_event.scheduled_end_time
-                    }
-                ).await?;
-            }
-        }
-    }
+    //     if let Some(twitch_event) = filtered_events.get(0) {
+    //         if twitch_event.scheduled_start_time != event.scheduled_start_time || twitch_event.scheduled_end_time != event.scheduled_end_time {
+    //             edit_discord_event(
+    //                 event.id.clone(),
+    //                 UpdateDiscordEvent {
+    //                     scheduled_start_time: twitch_event.scheduled_start_time,
+    //                     scheduled_end_time: twitch_event.scheduled_end_time
+    //                 }
+    //             ).await?;
+    //         }
+    //     }
+    // }
 
     Ok(())
 }
