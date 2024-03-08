@@ -175,6 +175,25 @@ pub fn is_repeated(start: Timestamp, target: Timestamp, rule: &RecurrenceRule) -
 pub fn compare_events(e: &CreateDiscordEvent, d_e: &DiscordEvent) -> bool {
     if e.name != d_e.name { return false };
     if e.description != d_e.description { return false };
+
+    match e.recurrence_rule {
+        Some(ref rule) => {
+            match d_e.recurrence_rule {
+                Some(ref d_rule) => {
+                    if rule.by_weekday != d_rule.by_weekday { return false };
+                    if rule.interval != d_rule.interval { return false };
+                    if rule.frequency != d_rule.frequency { return false };
+
+                    // if rule.start != d_rule.start { return false };
+                },
+                None => return false,
+            }
+        },
+        None => {
+            if d_e.recurrence_rule.is_some() { return false };
+        },
+    }
+
     if e.recurrence_rule != d_e.recurrence_rule { return false };
 
     if e.scheduled_start_time != d_e.scheduled_start_time {
