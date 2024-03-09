@@ -162,7 +162,7 @@ pub async fn edit_discord_event(event_id: String, event: UpdateDiscordEvent) -> 
 pub fn is_repeated(start: Timestamp, target: Timestamp, rule: &RecurrenceRule) -> bool {
     match rule.by_weekday {
         Some(ref days) => {
-            let target_day = target.date().weekday().number_from_monday();
+            let target_day = target.date().weekday().number_from_monday() - 1;
 
             return days.contains(&target_day) && start.time() == target.time();
         },
