@@ -29,13 +29,10 @@ impl NextDate for RecurrenceRule {
                 continue;
             }
 
-            match self.by_weekday {
-                Some(ref days) => {
-                    if days.contains(&((next_date.date().weekday().number_from_monday() - 1) as u8)) {
-                        return Some(next_date);
-                    }
-                },
-                None => (),
+            if let Some(ref days) = self.by_weekday {
+                if days.contains(&(next_date.date().weekday().number_from_monday() - 1)) {
+                    return Some(next_date);
+                }
             }
         }
     }
@@ -69,24 +66,24 @@ pub struct CreateDiscordEvent {
 }
 
 
-impl Into<CreateDiscordEvent> for TwitchEvent {
-    fn into(self) -> CreateDiscordEvent {
+impl From<TwitchEvent> for CreateDiscordEvent {
+    fn from(val: TwitchEvent) -> Self {
         CreateDiscordEvent {
-            name: format!("{} | {}", self.name, self.categories),
-            description: format!("{}\n\n\n\n#{}", self.description.clone(), self.uid),
+            name: format!("{} | {}", val.name, val.categories),
+            description: format!("{}\n\n\n\n#{}", val.description.clone(), val.uid),
             privacy_level: 2,
             entity_type: 3,
             entity_metadata: EntityMetadata {
                 location: "https://twitch.tv/hafmc".to_string()
             },
-            scheduled_start_time: convert_to_offset_datetime(self.start_at),
-            scheduled_end_time: convert_to_offset_datetime(self.end_at),
-            recurrence_rule: match self.repeat_rule {
+            scheduled_start_time: convert_to_offset_datetime(val.start_at),
+            scheduled_end_time: convert_to_offset_datetime(val.end_at),
+            recurrence_rule: match val.repeat_rule {
                 Some(rule) => {
                     match rule {
                         super::twitch::RepeatRule::Weekly(day) => {
                             Some(RecurrenceRule {
-                                start: convert_to_offset_datetime(self.start_at),
+                                start: convert_to_offset_datetime(val.start_at),
                                 frequency: Some(2),
                                 interval: Some(1),
                                 by_weekday: Some(vec![(day.number_from_monday() - 1) as u8]),
@@ -160,13 +157,10 @@ pub async fn edit_discord_event(event_id: String, event: UpdateDiscordEvent) -> 
 // Comparators
 
 pub fn is_repeated(start: Timestamp, target: Timestamp, rule: &RecurrenceRule) -> bool {
-    match rule.by_weekday {
-        Some(ref days) => {
-            let target_day = target.date().weekday().number_from_monday() - 1;
+    if let Some(ref days) = rule.by_weekday {
+        let target_day = target.date().weekday().number_from_monday() - 1;
 
-            return days.contains(&target_day) && start.time() == target.time();
-        },
-        None => (),
+        return days.contains(&target_day) && start.time() == target.time();
     }
 
     false

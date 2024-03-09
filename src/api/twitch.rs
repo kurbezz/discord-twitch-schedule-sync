@@ -29,7 +29,7 @@ fn parse_property_datetime(property: &Property) -> DateTime<Utc> {
     let tz: Tz = timzone_str.parse().unwrap();
 
     let dt = NaiveDateTime::parse_from_str(
-        &property.val.to_string(),
+        property.val.as_ref(),
         "%Y%m%dT%H%M%S"
     ).unwrap();
 
