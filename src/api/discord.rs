@@ -100,8 +100,11 @@ impl From<TwitchEvent> for CreateDiscordEvent {
 
 #[derive(Serialize, Clone)]
 pub struct UpdateDiscordEvent {
+    pub name: String,
+    pub description: String,
     pub scheduled_start_time: Timestamp,
     pub scheduled_end_time: Timestamp,
+    pub recurrence_rule: Option<RecurrenceRule>,
 }
 
 
@@ -177,8 +180,7 @@ pub fn compare_events(e: &CreateDiscordEvent, d_e: &DiscordEvent) -> bool {
                     if rule.by_weekday != d_rule.by_weekday { return false };
                     if rule.interval != d_rule.interval { return false };
                     if rule.frequency != d_rule.frequency { return false };
-
-                    // if rule.start != d_rule.start { return false };
+                    if !is_repeated(rule.start, d_rule.start, rule) { return false };
                 },
                 None => return false,
             }
