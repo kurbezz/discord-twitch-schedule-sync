@@ -194,8 +194,6 @@ pub fn compare_events(e: &CreateDiscordEvent, d_e: &DiscordEvent) -> bool {
         },
     }
 
-    if e.recurrence_rule != d_e.recurrence_rule { return false };
-
     if e.scheduled_start_time != d_e.scheduled_start_time {
         match &e.recurrence_rule {
             Some(rule) => {
