@@ -19,6 +19,7 @@ async fn sync() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let discord_events: Vec<(String, DiscordEvent)> = get_discord_events()
         .await?
         .into_iter()
+        .filter(|e| e.creator_id == config::CONFIG.bot_id)
         .map(|e| (
             e.description.rsplit_once('#').unwrap_or(("", "")).1.to_string(),
             e

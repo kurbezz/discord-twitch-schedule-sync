@@ -46,6 +46,7 @@ pub struct DiscordEvent {
     pub scheduled_start_time: Timestamp,
     pub scheduled_end_time: Timestamp,
     pub recurrence_rule: Option<RecurrenceRule>,
+    pub creator_id: u128,
 }
 
 #[derive(Serialize, Clone)]
