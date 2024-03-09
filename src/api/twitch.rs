@@ -14,6 +14,7 @@ pub enum RepeatRule {
 
 #[derive(Clone)]
 pub struct TwitchEvent {
+    pub uid: String,
     pub start_at: DateTime<Utc>,
     pub end_at: DateTime<Utc>,
     pub name: String,
@@ -79,6 +80,7 @@ pub async fn get_twitch_events() -> Result<Vec<TwitchEvent>, Box<dyn std::error:
             };
 
             TwitchEvent {
+                uid: component.properties[0].val.to_string(),
                 start_at: parse_property_datetime(&component.properties[2]),
                 end_at: parse_property_datetime(&component.properties[3]),
                 name: component.properties[4].val.to_string(),

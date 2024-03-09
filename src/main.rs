@@ -10,20 +10,21 @@ pub mod utils;
 
 
 async fn sync() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let twitch_events: Vec<CreateDiscordEvent> = get_twitch_events()
+    let twitch_events: Vec<(String, CreateDiscordEvent)> = get_twitch_events()
         .await?
         .iter()
-        .map(|e| e.clone().into())
+        .map(|e| (e.uid.clone(), e.clone().into()))
         .collect();
     let discord_events = get_discord_events().await?;
 
     // Create events
     let to_create: Vec<&CreateDiscordEvent> = twitch_events
         .iter()
-        .filter(|e| !discord_events
+        .filter(|(_, e)| !discord_events
                 .iter()
                 .any(|d_e| compare_events(e, d_e))
         )
+        .map(|(_, e)| e)
         .collect();
 
     for event in to_create {
@@ -58,7 +59,7 @@ async fn sync() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .iter()
         .filter(|d_e| !twitch_events
                 .iter()
-                .any(|e| compare_events(e, d_e))
+                .any(|(_, e)| compare_events(e, d_e))
         )
         .collect();
 

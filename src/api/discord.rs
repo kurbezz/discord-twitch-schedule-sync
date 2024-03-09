@@ -73,7 +73,7 @@ impl Into<CreateDiscordEvent> for TwitchEvent {
     fn into(self) -> CreateDiscordEvent {
         CreateDiscordEvent {
             name: format!("{} | {}", self.name, self.categories),
-            description: self.description.clone(),
+            description: format!("{}\n\n\n\n#{}", self.description.clone(), self.uid),
             privacy_level: 2,
             entity_type: 3,
             entity_metadata: EntityMetadata {
