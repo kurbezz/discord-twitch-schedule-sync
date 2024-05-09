@@ -109,10 +109,10 @@ async fn sync() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             };
 
             if let Some(rule) = new_event.recurrence_rule.clone() {
+                let duration_delta = new_event.scheduled_end_time.duration_since(Timestamp::UNIX_EPOCH) - new_event.scheduled_start_time.duration_since(Timestamp::UNIX_EPOCH);
+
                 new_event.scheduled_start_time = rule.next_date(event.scheduled_start_time).unwrap();
-                new_event.scheduled_end_time = new_event.scheduled_start_time.checked_add(
-                    event.scheduled_end_time.duration_since(Timestamp::UNIX_EPOCH) - event.scheduled_start_time.duration_since(Timestamp::UNIX_EPOCH)
-                ).unwrap();
+                new_event.scheduled_end_time = new_event.scheduled_start_time.checked_add(duration_delta).unwrap();
 
                 new_event.recurrence_rule = Some(RecurrenceRule {
                     start: new_event.scheduled_start_time,
@@ -122,6 +122,9 @@ async fn sync() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
             new_event
         };
+
+        println!("Create: {:?}", create_event);
+        println!("Update: {:?}", update_event);
 
         edit_discord_event(
             event.id.clone(),

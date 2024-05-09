@@ -6,7 +6,7 @@ use crate::{config, utils::convert_to_offset_datetime};
 use super::twitch::TwitchEvent;
 
 
-#[derive(Deserialize, Serialize, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Debug)]
 pub struct RecurrenceRule {
     pub start: Timestamp,
     pub by_weekday: Option<Vec<u8>>,
@@ -46,15 +46,15 @@ pub struct DiscordEvent {
     pub scheduled_start_time: Timestamp,
     pub scheduled_end_time: Timestamp,
     pub recurrence_rule: Option<RecurrenceRule>,
-    pub creator_id: u128,
+    pub creator_id: String,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 pub struct EntityMetadata {
     pub location: String,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 pub struct CreateDiscordEvent {
     pub name: String,
     pub description: String,
@@ -70,8 +70,13 @@ pub struct CreateDiscordEvent {
 impl From<TwitchEvent> for CreateDiscordEvent {
     fn from(val: TwitchEvent) -> Self {
         CreateDiscordEvent {
-            name: format!("{} | {}", val.name, val.categories),
-            description: format!("{}\n\n\n\n#{}", val.description.clone(), val.uid),
+            name: {
+                match val.categories {
+                    Some(categories) => format!("{} | {}", val.name, categories),
+                    None => val.name
+                }
+            },
+            description: format!("{}\n\n\n\n#{}", val.description.unwrap_or("".to_string()), val.uid),
             privacy_level: 2,
             entity_type: 3,
             entity_metadata: EntityMetadata {
@@ -99,7 +104,7 @@ impl From<TwitchEvent> for CreateDiscordEvent {
 }
 
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 pub struct UpdateDiscordEvent {
     pub name: String,
     pub description: String,

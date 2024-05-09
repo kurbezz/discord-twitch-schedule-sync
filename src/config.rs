@@ -10,7 +10,7 @@ pub struct Config {
     pub broadcast_id: u32,
     pub guild_id: u64,
     pub bot_token: String,
-    pub bot_id: u128,
+    pub bot_id: String,
 }
 
 
@@ -20,7 +20,7 @@ impl Config {
             broadcast_id: get_env("BROADCAST_ID").parse().unwrap(),
             guild_id: get_env("GUILD_ID").parse().unwrap(),
             bot_token: get_env("BOT_TOKEN"),
-            bot_id: get_env("BOT_ID").parse().unwrap(),
+            bot_id: get_env("BOT_ID"),
         }
     }
 }
