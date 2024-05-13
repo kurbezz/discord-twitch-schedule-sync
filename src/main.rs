@@ -123,9 +123,6 @@ async fn sync() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             new_event
         };
 
-        println!("Create: {:?}", create_event);
-        println!("Update: {:?}", update_event);
-
         edit_discord_event(
             event.id.clone(),
             update_event
